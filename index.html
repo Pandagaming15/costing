@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cooked Product Costing Calculator</title>
+<style>
+:root{--ink:#203047;--accent:#176b58;--soft:#eef6f2;--line:#d7e0e8;--paper:#fff;--muted:#607086}
+*{box-sizing:border-box}body{margin:0;background:#f3f6f8;color:var(--ink);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:var(--accent);color:white;padding:24px 16px}header .wrap,main{max-width:1100px;margin:auto}h1{margin:0 0 6px;font-size:clamp(1.5rem,4vw,2.1rem)}header p{margin:0;opacity:.92}
+main{padding:18px 14px 40px}.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 3px 12px #2030470a}
+h2{font-size:1.2rem;margin:0 0 12px}h3{font-size:1rem;margin:14px 0 7px}.hint{color:var(--muted);font-size:.92rem}
+table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left}th{background:var(--soft);font-size:.9rem}td input,td select{width:100%;min-width:70px;padding:9px 8px;border:1px solid #c9d4df;border-radius:7px;font:inherit;background:white;color:inherit}td.money{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.table-wrap{overflow-x:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.field label{display:block;font-size:.9rem;font-weight:650;margin-bottom:5px}.field input{width:100%;padding:11px;border:1px solid #c9d4df;border-radius:8px;font:inherit}
+button{border:0;border-radius:9px;padding:10px 14px;font:inherit;font-weight:650;cursor:pointer}.primary{background:var(--accent);color:white}.secondary{background:#e9eef3;color:var(--ink)}.danger{background:#fff0ef;color:#a72c26}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.metric{background:var(--soft);padding:13px;border-radius:10px}.metric span{display:block;color:var(--muted);font-size:.85rem}.metric strong{font-size:1.35rem;overflow-wrap:anywhere}
+.formula{padding:12px;background:#f7f9fb;border-left:4px solid var(--accent);border-radius:7px;margin:8px 0;overflow-wrap:anywhere}.formula code{white-space:normal;font-size:.97rem}.steps{padding-left:22px}.steps li{margin:9px 0}.pill{display:inline-block;background:#e4f3eb;color:#155b49;border-radius:999px;padding:3px 9px;font-size:.8rem;font-weight:700}
+@media(max-width:600px){.panel{padding:12px}th,td{padding:6px}header{padding:20px 14px}}
+@media print{body{background:white}.panel{box-shadow:none;break-inside:avoid}button,.actions{display:none}header{background:white;color:var(--ink);padding:10px 0}main{padding:0}.panel{border:1px solid #bbb}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>Cooked Product Costing Calculator</h1><p>Enter your ingredients in the table, then press <b>Enter</b> or Calculate to see each formula and the step-by-step result.</p></div></header>
+<main>
+<section class="panel">
+<h2>1. Ingredient cost table</h2>
+<p class="hint">Edit the sample rows or replace them with your own recipe. Each row cost is calculated as Quantity × Unit price. Press Enter in a table input to recalculate.</p>
+<div class="table-wrap"><table id="ingredientTable">
+<thead><tr><th style="width:20%">Quantity</th><th style="width:15%">Unit</th><th style="width:35%">Ingredient / Particulars</th><th style="width:20%">Price per unit (₱)</th><th style="width:15%">Total (₱)</th><th></th></tr></thead>
+<tbody id="ingredientRows"></tbody>
+<tfoot><tr><th colspan="4" style="text-align:right">Total Direct Cost</th><th id="directTotal" class="money">₱0.00</th><th></th></tr></tfoot>
+</table></div>
+<div class="actions"><button class="secondary" id="addRow">+ Add ingredient</button><button class="secondary" id="sample">Load sample recipe</button></div>
+</section>
+<section class="panel">
+<h2>2. Other costing details</h2>
+<div class="grid">
+<div class="field"><label>Indirect cost (automatic)</label><input id="indirectDisplay" type="text" value="₱0.00" readonly aria-label="Automatically calculated indirect cost"></div>
+<div class="field"><label for="servings">Number of servings / yields</label><input id="servings" type="number" min="1" step="1" value="10"></div>
+<div class="field"><label for="markup">Mark-up percentage (%)</label><input id="markup" type="number" min="0" step="0.1" value="25"></div>
+</div>
+<p class="hint">Following the module's formula, indirect cost is automatically calculated as ½ (50%) of the total ingredient cost. You do not need to enter it manually.</p>
+<div class="actions"><button class="primary" id="calculate">Calculate costing</button><button class="secondary" id="reset">Reset</button><button class="secondary" onclick="window.print()">Print results</button></div>
+</section>
+<section class="panel">
+<h2>3. Results</h2>
+<div class="cards">
+<div class="metric"><span>Total direct cost</span><strong id="rDirect">₱0.00</strong></div>
+<div class="metric"><span>Total cost (direct + indirect)</span><strong id="rTotal">₱0.00</strong></div>
+<div class="metric"><span>Cost per serving</span><strong id="rUnit">₱0.00</strong></div>
+<div class="metric"><span>Selling price per serving</span><strong id="rPrice">₱0.00</strong></div>
+</div>
+</section>
+<section class="panel">
+<h2>4. Formula and step-by-step solution</h2>
+<h3>A. Total cost of each ingredient</h3>
+<div class="formula"><code>Ingredient cost = Quantity × Price per unit</code></div>
+<p id="rowFormula" class="hint">Enter ingredients to see the calculation for each row.</p>
+<h3>B. Total direct cost</h3>
+<div class="formula"><code>Total Direct Cost = Add all ingredient costs</code></div>
+<p id="directSteps"></p>
+<h3>C. Total production cost</h3>
+<div class="formula"><code>Total Production Cost = Total Direct Cost + Indirect Cost</code></div>
+<p id="totalSteps"></p>
+<h3>D. Cost per serving / unit cost</h3>
+<div class="formula"><code>Unit Cost = Total Production Cost ÷ Number of servings</code></div>
+<p id="unitSteps"></p>
+<h3>E. Selling price with mark-up</h3>
+<div class="formula"><code>Selling Price = Unit Cost × (1 + Mark-up percentage ÷ 100)</code></div>
+<p id="priceSteps"></p>
+<p class="hint">Note: This calculator uses the standard total-cost method. If your instructor requires a different indirect-cost formula, follow the formula in your module.</p>
+</section>
+</main>
+<script>
+const tbody=document.getElementById('ingredientRows');
+const money=n=>'₱'+(Number.isFinite(n)?n:0).toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=id=>Number(document.getElementById(id).value)||0;
+const sampleRows=[
+ {qty:1,unit:'kg',name:'Chicken',price:130},
+ {qty:1,unit:'bottle',name:'Oil',price:38},
+ {qty:2,unit:'cups',name:'Evaporated milk',price:9},
+ {qty:0.5,unit:'cup',name:'Breadcrumbs',price:20},
+ {qty:0.5,unit:'tsp',name:'Seasoning',price:5}
+];
+function addRow(item={qty:1,unit:'pcs',name:'',price:0}){
+ const tr=document.createElement('tr');
+ tr.innerHTML=`<td><input type="number" min="0" step="any" class="qty" aria-label="Quantity"></td>
+ <td><input class="unit" aria-label="Unit"></td>
+ <td><input class="name" aria-label="Ingredient name" placeholder="e.g. Sugar"></td>
+ <td><input type="number" min="0" step="any" class="price" aria-label="Price per unit"></td>
+ <td class="money lineTotal">₱0.00</td><td><button class="danger remove" type="button" aria-label="Remove ingredient">×</button></td>`;
+ tr.querySelector('.qty').value=item.qty;
+ tr.querySelector('.unit').value=item.unit;
+ tr.querySelector('.name').value=item.name;
+ tr.querySelector('.price').value=item.price;
+ tr.querySelector('.remove').addEventListener('click',()=>{tr.remove();calculate();});
+ tr.querySelectorAll('input').forEach(input=>input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();calculate();}}));
+ tr.querySelectorAll('input').forEach(input=>input.addEventListener('input',calculate));
+ tbody.appendChild(tr);
+ calculate();
+}
+function getRows(){
+ return [...tbody.querySelectorAll('tr')].map(tr=>{
+  const qty=Number(tr.querySelector('.qty').value)||0,price=Number(tr.querySelector('.price').value)||0;
+  return {qty,unit:tr.querySelector('.unit').value.trim()||'unit',name:tr.querySelector('.name').value.trim()||'Unnamed ingredient',price,cost:qty*price,tr};
+ });
+}
+function calculate(){
+ const rows=getRows();let direct=0;
+ rows.forEach(r=>{direct+=r.cost;r.tr.querySelector('.lineTotal').textContent=money(r.cost);});
+ const indirect=direct*0.5,servings=Math.max(0,num('servings')),markup=num('markup');
+ document.getElementById('indirectDisplay').value=money(indirect);
+ const total=direct+indirect,unit=servings>0?total/servings:0,price=unit*(1+markup/100);
+ document.getElementById('directTotal').textContent=money(direct);
+ document.getElementById('rDirect').textContent=money(direct);
+ document.getElementById('rTotal').textContent=money(total);
+ document.getElementById('rUnit').textContent=servings>0?money(unit):'—';
+ document.getElementById('rPrice').textContent=servings>0?money(price):'—';
+ const formulaRows=rows.filter(r=>r.name!=='Unnamed ingredient'||r.qty!==0||r.price!==0);
+ document.getElementById('rowFormula').innerHTML=formulaRows.length?formulaRows.map(r=>`${escapeHtml(r.name)}: ${r.qty} ${escapeHtml(r.unit)} × ${money(r.price)} = <b>${money(r.cost)}</b>`).join('<br>'):'No ingredients entered yet.';
+ const terms=formulaRows.map(r=>money(r.cost));
+ document.getElementById('directSteps').innerHTML=`${terms.length?terms.join(' + '):'₱0.00'} = <b>${money(direct)}</b>`;
+ document.getElementById('totalSteps').innerHTML=`${money(direct)} + [${money(direct)} × ½] = ${money(direct)} + ${money(indirect)} (indirect cost) = <b>${money(total)}</b>`;
+ document.getElementById('unitSteps').innerHTML=servings>0?`${money(total)} ÷ ${servings} servings = <b>${money(unit)} per serving</b>`:'Enter a number of servings greater than 0 to calculate unit cost.';
+ document.getElementById('priceSteps').innerHTML=servings>0?`${money(unit)} × (1 + ${markup}% ÷ 100)<br>= ${money(unit)} × ${(1+markup/100).toFixed(4)}<br>= <b>${money(price)} per serving</b>`:'Enter a number of servings greater than 0 to calculate selling price.';
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+document.getElementById('addRow').addEventListener('click',()=>addRow());
+document.getElementById('sample').addEventListener('click',()=>{tbody.innerHTML='';sampleRows.forEach(addRow);});
+document.getElementById('calculate').addEventListener('click',calculate);
+['servings','markup'].forEach(id=>{document.getElementById(id).addEventListener('input',calculate);document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();calculate();}})});
+document.getElementById('reset').addEventListener('click',()=>{tbody.innerHTML='';document.getElementById('servings').value='1';document.getElementById('markup').value='0';addRow({qty:1,unit:'pcs',name:'',price:0});calculate();});
+sampleRows.forEach(addRow);
+</script>
+</body>
+</html>
