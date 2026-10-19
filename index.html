@@ -79,21 +79,24 @@ input,select{font:inherit;padding:5px;width:100%;border:1px solid #aaa}
 </div>
 <h1>Costing and Pricing of Cooked Products</h1>
 <p class="subtitle">Food Technology</p>
-<div class="identity-fields" aria-label="Group and member details">
+<div class="identity-fields" aria-label="Product, group, and member details">
+ <label>Product Name<input id="productName" type="text" placeholder="Enter your product name"></label>
  <label>Group No.<input id="groupNo" type="text" placeholder="Enter group number"></label>
  <label>Members<input id="memberNames" type="text" placeholder="Enter member names, separated by commas"></label>
 </div>
-<div class="identity-print" aria-label="Printed group and member details">
+<div class="identity-print" aria-label="Printed product, group, and member details">
+ <p><strong>Product Name:</strong> <span id="productNamePrint">________________</span></p>
  <p><strong>Group No.:</strong> <span id="groupNoPrint">________________</span></p>
  <p><strong>Members:</strong> <span id="memberNamesPrint" class="members-output">________________</span></p>
 </div>
 
 <h2>1. Establish the Cost</h2>
-<p class="small edit-note">Edit the quantity, unit, ingredient, or total cost in the table.</p>
+<p class="small edit-note">Edit the quantity, unit, ingredient, or total cost in the table. Use “Add Ingredient Row” to add more ingredients.</p>
+<div class="controls edit-note"><button type="button" onclick="addIngredientRow()">+ Add Ingredient Row</button></div>
 <table>
-<thead><tr><th style="width:13%">Qty</th><th style="width:17%">Unit</th><th>Particulars</th><th class="num" style="width:25%">Total (₱)</th></tr></thead>
+<thead><tr><th style="width:11%">Qty</th><th style="width:15%">Unit</th><th>Particulars</th><th class="num" style="width:22%">Total (₱)</th><th class="edit-note">Action</th></tr></thead>
 <tbody id="rows"></tbody>
-<tfoot><tr><th colspan="3" class="num">Total Cost / Ingredient Cost</th><th class="num" id="directTotal">₱198.50</th></tr></tfoot>
+<tfoot><tr><th colspan="3" class="num">Total Cost / Ingredient Cost</th><th class="num" id="directTotal">₱198.50</th><th class="edit-note"></th></tr></tfoot>
 </table>
 <div class="formula">
 <strong>Total Direct Cost = Add all ingredient costs</strong>
@@ -151,8 +154,17 @@ function addRow(item={qty:'1',unit:'pcs',name:'',cost:0}){
   if(cls==='cost'){input.min='0';input.step='any';input.style.textAlign='right'}
   input.setAttribute('aria-label',cls);input.addEventListener('input',calculate);td.appendChild(input);tr.appendChild(td);
  }
+ const actionTd=document.createElement('td');
+ actionTd.className='edit-note';
+ actionTd.style.textAlign='center';
+ const removeBtn=document.createElement('button');
+ removeBtn.type='button'; removeBtn.className='light'; removeBtn.textContent='Remove';
+ removeBtn.style.padding='5px 8px';
+ removeBtn.addEventListener('click',()=>{tr.remove();calculate();});
+ actionTd.appendChild(removeBtn); tr.appendChild(actionTd);
  rowsEl.appendChild(tr);
 }
+function addIngredientRow(){addRow();const last=rowsEl.lastElementChild;if(last)last.querySelector('.name').focus();calculate();}
 function getRows(){return [...rowsEl.querySelectorAll('tr')].map(tr=>({qty:tr.querySelector('.qty').value,unit:tr.querySelector('.unit').value,name:tr.querySelector('.name').value,cost:Math.max(0,Number(tr.querySelector('.cost').value)||0)}));}
 function calculate(){
  updateIdentityPrint();
@@ -178,11 +190,14 @@ function calculate(){
  document.getElementById('summaryPrice').textContent=money(price);
 }
 function updateIdentityPrint(){
+ const product=document.getElementById('productName').value.trim();
  const group=document.getElementById('groupNo').value.trim();
  const members=document.getElementById('memberNames').value.trim();
+ document.getElementById('productNamePrint').textContent=product||'________________';
  document.getElementById('groupNoPrint').textContent=group||'________________';
  document.getElementById('memberNamesPrint').textContent=members||'________________';
 }
+document.getElementById('productName').addEventListener('input',updateIdentityPrint);
 document.getElementById('groupNo').addEventListener('input',updateIdentityPrint);
 document.getElementById('memberNames').addEventListener('input',updateIdentityPrint);
 function promptValue(id, fallback){const el=document.getElementById(id);return el?Number(el.value):fallback;}
